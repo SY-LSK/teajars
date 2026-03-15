@@ -98,41 +98,6 @@ pip install requests
 python test/ui_test.py
 ```
 
-## 二次开发
-
-### 项目架构
-
-#### 核心组件
-- `teajars` 类：键值存储的核心实现
-- `encrypt.hpp`：XOR加密与Base64编码/解码功能
-- `httplib.h`：HTTP服务器和客户端功能
-- `json.hpp`：JSON数据解析和生成
-
-#### 数据模型
-- `tkv` 结构体：存储键、类型和值
-- 支持的数据类型：Int, Float, String, Bool, None
-
-### 扩展功能
-
-#### 添加新的API端点
-
-在 `main.cpp` 的 `net_server` 函数中添加新的路由处理函数。示例：
-
-```cpp
-svr.Get("/api/new_endpoint", [](const h::Request& req, h::Response& res) {
-    // 处理逻辑
-    res.set_content(R"({"status":"200"})", "application/json");
-});
-```
-
-#### 修改数据类型支持
-
-在 `main.cpp` 中的 `kv_type` 枚举中添加新类型，并更新 `detectType` 函数以支持新类型。
-
-#### 自定义加密算法
-
-修改 `include/encrypt.hpp` 中的 `Encrypt` 类来实现不同的加密算法。
-
 ### 依赖项
 
 - C++11 或更高版本的编译器
