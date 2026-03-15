@@ -14,19 +14,18 @@ using namespace std;
 namespace h = httplib;
 using json = nlohmann::json;
 
-#define TJVEROSIN "0.83"
+#define TJVEROSIN "0.93"
 
 /*还要完成
-    网络net部分
+可以尝试优化，get时尝试去body找body中的keyok
 
 建议的 API 路由结构
-svr.Get("/api/v1/status", handle_status);           // 系统状态
-svr.Get("/api/v1/keys", handle_list_keys);        // 获取所有键
-svr.Get("/api/v1/get", handle_get_value);         // 获取单个值
-svr.Post("/api/v1/set", handle_set_value);        // 设置键值
-svr.Delete("/api/v1/del", handle_delete_key);     // 删除键
-svr.Post("/api/v1/save", handle_save);            // 保存数据
-svr.Post("/api/v1/load", handle_load);            // 加载数据
+svr.Get("/api/v1/status", handle_status);ok           // 系统状态
+svr.Get("/api/v1/get", handle_get_value);ok       // 获取单个值
+svr.Post("/api/v1/set", handle_set_value);ok        // 设置键值
+svr.Delete("/api/v1/del", handle_delete_key);ok     // 删除键
+svr.Post("/api/v1/save", handle_save);ok            // 保存数据
+svr.Post("/api/v1/load", handle_load);ok            // 加载数据
 */
 
 //函数声明
@@ -66,7 +65,8 @@ vector<string> parser_cmd(const string& cmd, char spilit = ' '){
                 ans.push_back(tmp);
                 tmp = "";
             }
-        } else {
+        }
+        else {
             tmp += c;
         }
     }
@@ -84,9 +84,9 @@ kv_type detectType(const string& input) {
 class teajars{
 private:
     unordered_map<string,tkv> data_map;
-    
+    string encrypt_key = "";
 public:
-    string teafilekey = "";
+    //string teafilekey = "";
     bool is_debug = false;
     void set_kv(const tkv& kv){
         data_map[kv.key] = kv;
@@ -116,7 +116,7 @@ public:
     
     void save(const string& filename="teajars.kv"){
         ofstream fout(filename,ios::binary);
-        string header = Encrypt::encrypt(string("#teajarsKV version ")+TJVEROSIN, teafilekey);
+        string header = Encrypt::encrypt(string("#teajarsKV version ")+TJVEROSIN,get_encrypt_key());
         int header_length = header.length();
         fout.write((char*)&header_length,sizeof(header_length));
         fout.write(header.c_str(),header_length);
@@ -126,8 +126,8 @@ public:
         for(const auto& pair : data_map) {
             const tkv& item = pair.second;
             // 加密键和值
-            string encrypted_key = Encrypt::encrypt(item.key,teafilekey);
-            string encrypted_value = Encrypt::encrypt(item.value,teafilekey);
+            string encrypted_key = Encrypt::encrypt(item.key,get_encrypt_key());
+            string encrypted_value = Encrypt::encrypt(item.value,get_encrypt_key());
             // 写入加密后的键
             int key_length = encrypted_key.length();
             fout.write((char*)&key_length,sizeof(key_length));
@@ -151,7 +151,7 @@ public:
         header.resize(header_length);
         fin.read(&header[0],header_length);
         // 解密并验证header
-        if (Encrypt::decrypt(header,teafilekey) != string("#teajarsKV version ")+TJVEROSIN){
+        if (Encrypt::decrypt(header,get_encrypt_key()) != string("#teajarsKV version ")+TJVEROSIN){
             throw runtime_error("open error");
         }
         // 读取数据项总数
@@ -172,13 +172,21 @@ public:
             encrypted_value.resize(value_length);
             fin.read(&encrypted_value[0],value_length);
             // 解密键和值
-            string decrypted_key = Encrypt::decrypt(encrypted_key,teafilekey);
-            string decrypted_value = Encrypt::decrypt(encrypted_value,teafilekey);
+            string decrypted_key = Encrypt::decrypt(encrypted_key,get_encrypt_key());
+            string decrypted_value = Encrypt::decrypt(encrypted_value,get_encrypt_key());
             
             set_kv(tkv{decrypted_key,detectType(decrypted_value),decrypted_value});
         }
         
         fin.close();
+    }
+
+    void set_encrypt_key(const string& key){
+        encrypt_key = key;
+    }
+
+    string get_encrypt_key(){
+        return encrypt_key;
     }
 };
 
@@ -239,12 +247,12 @@ void local_server(){
             teakv.is_debug = true;
             cout << "debug on" << endl;
         }
-        else if (pcmd[0] == "setkey" && pcmd.size() >= 2){
+        else if (pcmd[0] == "encryptkey" && pcmd.size() >= 2){
             if (!check_key(pcmd[1])){
                 cout << "key error" << endl;
                 continue;
             }
-            teakv.teafilekey = pcmd[1];
+            teakv.set_encrypt_key(pcmd[1]);
         }
         else if (pcmd[0]=="clearall"){
             teakv.clear_all();
@@ -260,40 +268,62 @@ void local_server(){
 void net_server(int port,string& host){
     h::Server svr;
     svr.Get("/",[](const h::Request& req,h::Response& res){
-        res.set_file_content("show.html","text/html");
+        res.set_file_content("assets/show.html","text/html");
     });
     
     svr.Get("/api/hello",[](const h::Request& req,h::Response& res){
-        res.set_file_content("show.html","text/html");
+        res.set_file_content("assets/show.html","text/html");
     });
 
-    svr.Get("/api/get",[](const h::Request& req,h::Response& res){
-        try{
-            string key = req.get_param_value("key");
-            if (key.empty()){
+    svr.Get("/api/status",[](const h::Request& req,h::Response& res){
+        res.set_content(R"({"status":"200"})","application/json");
+    });
+
+    svr.Get("/api/get", [](const h::Request& req, h::Response& res) {
+    try {
+        string key = req.get_param_value("key");
+        if (key.empty()){
+            try {
+                json req_body = json::parse(req.body);
+                if (req_body.contains("key")) {
+                    key = req_body["key"];
+                }
+                else{
+                    res.status = 400;
+                    res.set_content(R"({"error":"Missing 'key' parameter"})","application/json");
+                    return;
+                }
+            }
+            catch (const json::parse_error&){
                 res.status = 400;
                 res.set_content(R"({"error":"Missing 'key' parameter"})","application/json");
                 return;
             }
-            tkv k = teakv.get_kv(key);
-            if (k.key == "") {
-                res.status = 404;
-                res.set_content(R"({"error":"Key not found"})","application/json");
-            }
-            else{
-                json response = {
-                    {"key", k.key},
-                    {"value", k.value}
+        }
+        if (!check_key(key)){
+            res.status = 400;
+            res.set_content(R"({"error":"Invalid key format"})","application/json");
+            return;
+        }
+
+        // 查询数据库
+        tkv k = teakv.get_kv(key);
+        if (k.key == "") {
+            res.status = 404;
+            res.set_content(R"({"error":"Key not found"})", "application/json");
+        } else {
+            json response = {
+                {"key", k.key},
+                {"value", k.value}
             };
             res.set_content(response.dump(),"application/json");
         }
-        }
-        catch (const exception& e){
-            res.status = 500;
-            res.set_content(R"({"error":"Internal server error"})","application/json");
-        }
-        
-    });
+    }
+    catch (const exception& e){
+        res.status = 500;
+        res.set_content(R"({"error":"Internal server error"})","application/json");
+    }
+});
 
     svr.Post("/api/set",[](const h::Request& req,h::Response& res){
         try{
@@ -325,8 +355,101 @@ void net_server(int port,string& host){
             res.status = 500;
             res.set_content(R"({"error":"Internal server error"})","application/json");
         }
-    });   
-    //http://192.168.0.100:5000
+    });
+    
+    svr.Delete("/api/del",[](const h::Request& req,h::Response& res){
+        try{
+            json req_body = json::parse(req.body);
+            if (!req_body.contains("key")){
+                res.status = 400;
+                res.set_content(R"({"error":"Missing 'key' field in JSON body"})","application/json");
+                return;
+            }
+            string key = req_body["key"];
+            if (!check_key(key)){
+                res.status = 400;
+                res.set_content(R"({"error":"Invalid key format"})","application/json");
+                return;
+            }
+            teakv.del_kv(key);
+            json success_response = {
+                {"status", "200"},
+            };
+            res.set_content(success_response.dump(), "application/json");
+        }
+        catch (const exception& e){
+            res.status = 500;
+            res.set_content(R"({"error":"Internal server error"})","application/json");
+        }
+    });
+
+    svr.Post("/api/save",[](const h::Request& req,h::Response& res){
+        try{
+            json req_body = json::parse(req.body);
+            if (!req_body.contains("file")){
+                res.status = 400;
+                res.set_content(R"({"error":"Missing 'file' field in JSON body"})","application/json");
+                return;
+            }
+            string filename = req_body["file"];
+            teakv.save(filename);
+            res.set_content(R"({"status":"200"})","application/json");
+        }
+        catch (const exception& e){
+            res.status = 500;
+            res.set_content(R"({"error":"Internal server error"})","application/json");
+        }
+    });
+
+    svr.Get("/api/load",[](const h::Request& req,h::Response& res){
+        try{
+            json req_body = json::parse(req.body);
+            if (!req_body.contains("file")){
+                res.status = 400;
+                res.set_content(R"({"error":"Missing 'file' field in JSON body"})","application/json");
+                return;
+            }
+            if (req_body.contains("clear")){
+                if (req_body["clear"] == "true"){
+                    teakv.clear_all();
+                }
+            }
+            string filename = req_body["file"];
+            teakv.open(filename);
+            res.set_content(R"({"status":"200"})","application/json");
+        }
+        catch (const exception& e){
+            res.status = 500;
+            res.set_content(R"({"error":"Internal server error"})","application/json");
+        }
+    });
+
+
+    svr.Post("/api/set_encrypt_key",[](const h::Request& req,h::Response& res){
+        try{
+            json req_body = json::parse(req.body);
+            if (!req_body.contains("encrypt_key")){
+                res.status = 400;
+                res.set_content(R"({"error":"Missing 'encrypt_key' field in JSON body"})","application/json");
+                return;
+            }
+            string key = req_body["encrypt_key"];
+            if (!check_key(key)){
+                res.status = 400;
+                res.set_content(R"({"error":"Invalid key format"})","application/json");
+                return;
+            }
+            teakv.set_encrypt_key(key);
+            res.set_content(R"({"status":"200"})","application/json");
+        }
+        catch (const exception& e){
+            res.status = 500;
+            res.set_content(R"({"error":"Internal server error"})","application/json");
+        }
+    });
+
+
+    //http://192.168.0.103:5000
     cout<<"net server start at \nhost:"<<host<<"\nport:"<<port<<endl;
     svr.listen(host,port);
     return;
