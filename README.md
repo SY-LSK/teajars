@@ -32,7 +32,7 @@ b.cmd
 - `get key` - 获取键对应的值
 - `type key` - 查看键的类型
 - `del key` - 删除键
-- `save [filename]` - 保存数据到文件
+- `save filename` - 保存数据到文件
 - `open filename` - 从文件加载数据
 - `encryptkey key` - 设置加密密钥
 - `clearall` - 清空所有数据
