@@ -6,15 +6,18 @@
 #include<regex>
 #include<unordered_map>
 
+//#define CPPHTTPLIB_OPENSSL_SUPPORT  // 需要HTTPS支持
+#include "include/httplib.h"
 #include "include/encrypt.hpp"
 #include "include/httplib.h"
 #include "include/json.hpp"
+#include "include/asio_ip.hpp"
 
 using namespace std;
 namespace h = httplib;
 using json = nlohmann::json;
 
-#define TJVEROSIN "0.93"
+#define TJVEROSIN "0.95t"
 
 /*还要完成
 可以尝试优化，get时尝试去body找body中的keyok
@@ -447,11 +450,14 @@ void net_server(int port,string& host){
             res.set_content(R"({"error":"Internal server error"})","application/json");
         }
     });
+    
+    string local_ip = getLocalIP();
 
-
-    //http://192.168.0.103:5000
-    cout<<"net server start at \nhost:"<<host<<"\nport:"<<port<<endl;
-    svr.listen(host,port);
+    cout<<"teajarsKV version "<<TJVEROSIN<<endl;
+    cout<<"net server start at \nhost: "<<local_ip<<"\nport: "<<port<<endl;
+    cout<<"full url: http://"<<local_ip<<":"<<port<<endl;
+    
+    svr.listen(getLocalIP(),port);
     return;
 }
 
