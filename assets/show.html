@@ -13,6 +13,16 @@
     </head>
     <body>
         <h1 class="logo">teajarsKV</h1>
-        <p style="text-align: center;">version:0.9</p>
+        <p id="version" style="text-align: center;">version:<span id="v"></span></p>
+        <p id="data" style="text-align: center;"></p>
+        <script>
+            fetch("/api/version")
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById("v").textContent = data.version;
+                document.getElementById("data").textContent = data.data;
+            })
+            .catch(error => document.getElementById("version").textContent = "Error:" + error);
+        </script>
     </body>
 </html>

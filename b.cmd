@@ -12,7 +12,7 @@ goto gcc
 
 :gcc
 echo Compiling with g++...
-g++ -O3 -march=native -flto main.cpp -o main.exe -lws2_32
+g++ -O3 -march=native -std=c++17 -I./include -I./src -flto main.cpp src/base.cpp src/server.cpp -o main.exe -lws2_32
 if %errorlevel% equ 0 (
     echo Compilation successful! Output: main.exe
 ) else (
@@ -22,16 +22,16 @@ goto end
 
 :msvc
 echo Compiling with cl...
-cl /EHsc /O2 main.cpp /Fe:main.exe
+cl /MP /EHsc /O2 /std:c++17 /utf-8 /D_HAS_STD_BYTE=0 /I./include /I./src main.cpp src/base.cpp src/server.cpp /Fe:main.exe
 if %errorlevel% equ 0 (
-    echo Compilation successful! Output: main.exe
-    if exist main.obj (
-        echo Cleaning up main.obj...
-        del main.obj
-    )
+    echo Compilation successful!
 ) else (
     echo Compilation failed!
+    goto end
 )
+if exist main.obj del main.obj
+if exist base.obj del base.obj
+if exist server.obj del server.obj
 goto end
 
 :end
