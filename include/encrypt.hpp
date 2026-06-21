@@ -1,5 +1,4 @@
-#ifndef ENCRYPT_HPP
-#define ENCRYPT_HPP
+#pragma once
 
 #include <string>
 #include <vector>
@@ -70,6 +69,4 @@ public:
 };
 
 // 定义静态成员变量
-const std::string Encrypt::base64_chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-
-#endif // ENCRYPT_HPP
+inline const std::string Encrypt::base64_chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
