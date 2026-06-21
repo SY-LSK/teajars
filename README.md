@@ -100,7 +100,7 @@ python test/ui_test.py
 
 ### 依赖项
 
-- C++11 或更高版本的编译器
+- C++17 或更高版本的编译器
 - Python 3.x（用于测试工具）
 - requests 库（用于测试工具）
 
@@ -113,7 +113,7 @@ python test/ui_test.py
 
 ## 版本信息
 
-当前版本：0.93
+当前版本：0.97beta
 
 ## 许可证
 
