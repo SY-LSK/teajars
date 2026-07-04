@@ -285,12 +285,12 @@ void net_server(int port,string& host,teajars& teakv){
         }
     });
     
-    string local_ip = getLocalIP();
-
-    cout<<"teajarsKV version "<<TJVERSION<<endl;
-    cout<<"net server start at \nhost: "<<local_ip<<"\nport: "<<port<<endl;
-    cout<<"local url: http://"<<local_ip<<":"<<port<<endl;
     
-    svr.listen(getLocalIP(),port);
+    cout<<"teajarsKV version "<<TJVERSION<<endl;
+    cout<<"net server start at \nhost: "<<host<<"\nport: "<<port<<endl;
+    if (host != "localhost") host = getLocalIP();
+    cout<<"local url: http://"<<host<<":"<<port<<endl;
+    
+    svr.listen(host,port);
     return;
 }
