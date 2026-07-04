@@ -6,17 +6,33 @@ TeaJarsKV 是一个轻量级的键值存储系统，支持本地命令行操作�
 
 ### 安装与构建
 
-项目提供了便捷的构建脚本 `b.cmd`，支持以下编译器：
-- GCC (MinGW)
-- MSVC
+项目提供了跨平台的 Python 构建脚本 `build.py`，支持以下编译器：
+
+| 选项 | 说明 |
+|------|------|
+| `gcc` | 使用 g++ 编译（Windows 上即 MinGW） |
+| `clang` | 使用 clang++ 编译 |
+| `msvc` | 使用 MSVC cl.exe 编译（仅 Windows） |
+| `auto` | 自动检测系统中可用的编译器 |
+| `cmake` | 通过 CMake 构建 |
 
 运行构建脚本：
 
 ```bash
-b.cmd
+# Windows
+python build.py gcc
+python build.py msvc
+
+# macOS / Linux
+python build.py clang
+python build.py auto
 ```
 
-然后根据提示选择相应的编译器。
+不带参数运行可查看帮助信息：
+
+```bash
+python build.py
+```
 
 ### 基础使用
 
@@ -24,7 +40,13 @@ b.cmd
 直接运行程序进入交互式命令行模式：
 
 ```bash
-./main.exe
+./teajars
+```
+
+在 Windows 上：
+
+```bash
+.\teajars.exe
 ```
 
 可用命令：
@@ -43,12 +65,12 @@ b.cmd
 启动HTTP服务器：
 
 ```bash
-./main.exe net [-port 端口号] [-host 主机地址]
+./teajars net [-port 端口号] [-host 主机地址]
 ```
 
 例如：
 ```bash
-./main.exe net -port 8080 -host 0.0.0.0
+./teajars net -port 8080 -host 0.0.0.0
 ```
 
 ### API 使用
@@ -101,7 +123,7 @@ python test/ui_test.py
 ### 依赖项
 
 - C++17 或更高版本的编译器
-- Python 3.x（用于测试工具）
+- Python 3.x（用于构建脚本和测试工具）
 - requests 库（用于测试工具）
 
 ### 文件格式
@@ -113,7 +135,8 @@ python test/ui_test.py
 
 ## 版本信息
 
-当前版本：0.97beta
+当前版本：0.97fastfix
+创建时间：2026-07-04
 
 ## 许可证
 
