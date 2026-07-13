@@ -1,23 +1,62 @@
 @echo off
 chcp 65001 >nul
-echo Select compiler:
-echo 1. g++ (MinGW)
-echo 2. cl (MSVC)
+echo Select build target:
+echo 1. Build builder.go (Go cross-platform builder)
+echo 2. cl (MSVC C++ compile)
 set /p choice=Enter option (1 or 2): 
 
-if "%choice%"=="1" goto gcc
+if "%choice%"=="1" goto gobuild
 if "%choice%"=="2" goto msvc
-echo Invalid option, using default compiler g++
-goto gcc
+echo Invalid option, using default: builder.go
+goto gobuild
 
-:gcc
-echo Compiling with g++...
-g++ -O3 -march=native -std=c++17 -I./include -I./src -flto main.cpp src/base.cpp src/server.cpp -o main.exe -lws2_32
-if %errorlevel% equ 0 (
-    echo Compilation successful! Output: main.exe
-) else (
-    echo Compilation failed!
-)
+:gobuild
+echo Building builder.go for all platforms...
+cd /d "%~dp0exec_build"
+
+set GOOS=windows
+set GOARCH=amd64
+go build -o windows_amd64.exe .
+if %errorlevel% neq 0 echo Build windows/amd64 failed!
+
+set GOOS=windows
+set GOARCH=arm64
+go build -o windows_arm64.exe .
+if %errorlevel% neq 0 echo Build windows/arm64 failed!
+
+set GOOS=linux
+set GOARCH=arm64
+go build -o linux_arm64 .
+if %errorlevel% neq 0 echo Build linux/arm64 failed!
+
+set GOOS=linux
+set GOARCH=amd64
+go build -o linux_amd64 .
+if %errorlevel% neq 0 echo Build linux/amd64 failed!
+
+set GOOS=darwin
+set GOARCH=amd64
+go build -o darwin_amd64 .
+if %errorlevel% neq 0 echo Build darwin/amd64 failed!
+
+set GOOS=darwin
+set GOARCH=arm64
+go build -o darwin_arm64 .
+if %errorlevel% neq 0 echo Build darwin/arm64 failed!
+
+set GOOS=
+set GOARCH=
+
+echo.
+echo All platforms built successfully!
+echo   - windows_amd64.exe
+echo   - windows_arm64.exe
+echo   - linux_amd64
+echo   - linux_arm64
+echo   - darwin_amd64
+echo   - darwin_arm64
+
+cd /d "%~dp0"
 goto end
 
 :msvc
