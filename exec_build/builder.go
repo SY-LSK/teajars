@@ -20,7 +20,7 @@ var (
 		"src/server.cpp",
 	}
 
-	outputName = "teajars"
+	outputName = "main"
 	cppStd     = "c++17"
 	optLevel   = "-O3"
 )
