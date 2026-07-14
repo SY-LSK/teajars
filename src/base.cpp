@@ -1,6 +1,8 @@
 #include "base.hpp"
 #include "encrypt.hpp"
 #include "config.hpp"
+#include "server.hpp"
+
 
 using namespace std;
 
@@ -38,6 +40,44 @@ kv_type detectType(const string& input) {
     if (input.front() == '"' && input.back() == '"') return kv_type::String;
     return kv_type::None;
 }
+
+void config_run(filesystem::path file_path,teajars& teakv) {
+    ifstream fin(file_path);
+    if (!fin.is_open()) {
+        cout << "Error: Cannot open config file: " << file_path << endl;
+        return;
+    }
+
+    json config;
+    try {
+        fin >> config;
+    } catch (const json::parse_error& e) {
+        cout << "Error: Invalid JSON format in config file" << endl;
+        fin.close();
+        return;
+    }
+    fin.close();
+
+    if (config.contains("debug") && config["debug"].get<bool>()) {
+        teakv.is_debug = true;
+        cout << "debug on" << endl;
+    }
+
+    string mode = config.value("mode","local");
+    if (mode == "net") {
+        int port = config.value("port",5000);
+        string host = config.value("host","localhost");
+        net_server(port,host,teakv);
+    }
+    else if (mode == "local") {
+        local_server(teakv);
+    }
+    else {
+        cout << "Warning: Invalid mode in config" << endl;
+        return;
+    }
+}
+
 
 void teajars::set_kv(const tkv& kv) {
     data_map[kv.key] = kv;
@@ -102,8 +142,7 @@ void teajars::open(const string& filename) {
     header.resize(header_length);
     fin.read(&header[0], header_length);
 
-    if (Encrypt::decrypt(header, get_encrypt_key()) !=
-        string("#teajarsKV version ") + TJVERSION) {
+    if (Encrypt::decrypt(header, get_encrypt_key()) != string("#teajarsKV version ") + TJVERSION) {
         throw runtime_error("open error");
     }
 

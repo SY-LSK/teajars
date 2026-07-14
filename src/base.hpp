@@ -6,6 +6,7 @@
 #include <iostream>
 #include <fstream>
 #include <regex>
+#include <filesystem>
 
 using namespace std;
 
@@ -25,10 +26,6 @@ struct tkv{
     string value;
 };
 
-vector<string> parser_cmd(const string& cmd, char spilit = ' ');
-bool check_key(const string& key);
-kv_type detectType(const string& input);
-
 class teajars{
 private:
     unordered_map<string,tkv> data_map;
@@ -46,3 +43,8 @@ public:
     void set_encrypt_key(const string& key);
     string get_encrypt_key();
 };
+
+vector<string> parser_cmd(const string& cmd, char spilit = ' ');
+bool check_key(const string& key);
+kv_type detectType(const string& input);
+void config_run(filesystem::path file_path,teajars& teakv);
